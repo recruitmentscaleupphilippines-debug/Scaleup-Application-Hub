@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowUpRight, Bell, BriefcaseBusiness, CalendarDays, Check, ChevronDown, Clock3, FileText, Inbox, LayoutDashboard, Menu, MessageSquareText, MoreHorizontal, Phone, Plus, Search, Settings, ShieldCheck, Sparkles, UserRoundCheck, Users, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 type Application = { id:string; name:string; initials:string; role:string; source:string; received:string; owner:string; status:string; nextAction:string; due:string; lastContact:string; acknowledged:boolean; tone:string };
 
@@ -18,8 +20,10 @@ const nav = [
 ] as const;
 
 export default function Page(){
- const [active,setActive]=useState("Dashboard"); const [query,setQuery]=useState(""); const [status,setStatus]=useState("All statuses"); const [callCandidate,setCallCandidate]=useState<Application|null>(null); const [purpose,setPurpose]=useState(""); const [messageSent,setMessageSent]=useState(false); const [ack,setAck]=useState(false); const [scheduled,setScheduled]=useState(""); const [mobile,setMobile]=useState(false);
- const filtered=useMemo(()=>applications.filter(a=>(a.name+a.role+a.id).toLowerCase().includes(query.toLowerCase())&&(status==="All statuses"||a.status===status)),[query,status]);
+ const router=useRouter(); const [active,setActive]=useState("Dashboard"); const [query,setQuery]=useState(""); const [status,setStatus]=useState("All statuses"); const [callCandidate,setCallCandidate]=useState<Application|null>(null); const [purpose,setPurpose]=useState(""); const [messageSent,setMessageSent]=useState(false); const [ack,setAck]=useState(false); const [scheduled,setScheduled]=useState(""); const [mobile,setMobile]=useState(false); const [liveApplications,setLiveApplications]=useState<Application[]>([]); const [dataReady,setDataReady]=useState(false);
+ useEffect(()=>{let mounted=true;async function load(){const supabase=createClient();const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace("/login");return}const {data}=await supabase.from("application_overview").select("*").order("next_action_due",{ascending:true,nullsFirst:false});if(mounted&&data){setLiveApplications(data.map((row,index)=>({id:row.application_code,name:row.candidate_name,initials:initials(row.candidate_name),role:row.position_title,source:row.source,received:"Received",owner:row.owner_name||"Unassigned",status:row.status,nextAction:row.next_action||"Set next action",due:formatDate(row.next_action_due),lastContact:formatDate(row.last_communication_at,"Not yet contacted"),acknowledged:Boolean(row.last_communication_at),tone:["violet","blue","orange","green","pink"][index%5]})));setDataReady(true)}}load();return()=>{mounted=false}},[router]);
+ const source=liveApplications.length?liveApplications:applications;
+ const filtered=useMemo(()=>source.filter(a=>(a.name+a.role+a.id).toLowerCase().includes(query.toLowerCase())&&(status==="All statuses"||a.status===status)),[query,status,source]);
  const canCall=purpose&&messageSent&&scheduled;
  return <div className="shell">
   <aside className={mobile?"sidebar open":"sidebar"}>
@@ -40,7 +44,7 @@ export default function Page(){
     </section>
     <section className="grid">
      <div className="panel applications"><div className="panelHead"><div><h3>Application inbox</h3><p>Prioritized by SLA and next-action date</p></div><button className="link" onClick={()=>setActive("Application Inbox")}>View all <ArrowUpRight size={15}/></button></div>
-      <div className="filters"><div className="miniSearch"><Search size={16}/><input placeholder="Search applications" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="select"><select value={status} onChange={e=>setStatus(e.target.value)}><option>All statuses</option>{[...new Set(applications.map(a=>a.status))].map(s=><option key={s}>{s}</option>)}</select><ChevronDown size={15}/></div></div>
+      <div className="filters"><div className="miniSearch"><Search size={16}/><input placeholder="Search applications" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="select"><select value={status} onChange={e=>setStatus(e.target.value)}><option>All statuses</option>{[...new Set(source.map(a=>a.status))].map(s=><option key={s}>{s}</option>)}</select><ChevronDown size={15}/></div><span className="connectionState"><i/>{dataReady?"Supabase connected":"Connecting…"}</span></div>
       <div className="tableWrap"><table><thead><tr><th>Candidate</th><th>Status</th><th>Owner</th><th>Next action</th><th>Last contact</th><th></th></tr></thead><tbody>{filtered.map(a=><tr key={a.id} className={!a.acknowledged?"urgent":""}><td><div className="candidate"><span className={`person ${a.tone}`}>{a.initials}</span><div><b>{a.name}</b><small>{a.role}</small><small>{a.source} · {a.id}</small></div></div></td><td><span className="statusDot">{a.status}</span></td><td><span className={a.owner==="Unassigned"?"unassigned":""}>{a.owner}</span></td><td><button className="action" onClick={()=>a.nextAction.includes("call")&&setCallCandidate(a)}>{a.nextAction}<small className={a.due.includes("Overdue")?"overdue":""}>{a.due}</small></button></td><td><span className={!a.acknowledged?"noContact":""}>{a.lastContact}</span></td><td><button className="dots"><MoreHorizontal/></button></td></tr>)}</tbody></table></div>
      </div>
      <aside className="rightcol">
@@ -57,3 +61,5 @@ export default function Page(){
 function Alert({title,count,note,kind,icon}:{title:string;count:string;note:string;kind:string;icon:React.ReactNode}){return <div className={`alert ${kind}`}><div className="alertIcon">{icon}</div><div><p>{title}</p><b>{count}</b><span>{note}</span></div><ArrowUpRight className="arrow"/></div>}
 function Attention({icon,title,text}:{icon:React.ReactNode;title:string;text:string}){return <div className="attentionRow"><span>{icon}</span><div><b>{title}</b><p>{text}</p></div><ChevronDown/></div>}
 function Ring(){return <div className="ring"><div><b>15</b><span>open tasks</span></div></div>}
+function initials(name:string){return name.split(" ").slice(0,2).map(part=>part[0]).join("").toUpperCase()}
+function formatDate(value:string|null,fallback="No due date"){if(!value)return fallback;return new Intl.DateTimeFormat("en-PH",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).format(new Date(value))}
