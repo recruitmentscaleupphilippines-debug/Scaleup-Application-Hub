@@ -14,9 +14,10 @@ export default function LoginPage() {
   async function submit(event: FormEvent) {
     event.preventDefault(); setLoading(true); setError("");
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setError("Invalid demo credentials or this account is not authorized.");
-    else window.location.assign("/");
+    else if (!data.session) setError("The login succeeded, but no browser session was created. Please try again.");
+    else window.location.replace("/");
     setLoading(false);
   }
 
