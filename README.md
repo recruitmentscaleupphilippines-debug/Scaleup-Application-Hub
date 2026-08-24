@@ -11,6 +11,8 @@ An operations-first recruitment CRM for centralized application handling, candid
 - Message-first calling workflow with gated call action
 - Responsive desktop/mobile layout
 - Navigation architecture for all planned modules
+- Live Supabase application reads with passwordless authentication
+- RLS-protected internal CRM access
 
 ## Run locally
 
@@ -23,12 +25,12 @@ Open `http://localhost:3000`.
 
 ## Environment
 
-Copy `.env.example` to `.env.local` and add the Supabase project URL and anonymous key. The current interface uses representative seed data while database tables, authentication, and role permissions are connected in the next implementation phase.
+Copy `.env.example` to `.env.local` and add the Supabase project URL and publishable key. Authenticated team members see live application data; an empty database displays clearly labeled demo rows for interface preview.
 
 ## Priority roadmap
 
-1. Supabase authentication, role-based access, and audit log
-2. Applications/candidates/vacancies schema and live CRUD
+1. Invite the initial administrator and configure approved email access
+2. Applications/candidates/vacancies live CRUD forms
 3. Automatic acknowledgments and SLA job processing
 4. Vacancy closing workflow and checklists
 5. Interview buddy review and calendar delivery
