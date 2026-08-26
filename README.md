@@ -10,7 +10,12 @@ An operations-first recruitment CRM for centralized application handling, candid
 - Mandatory next-action dates
 - Message-first calling workflow with gated call action
 - Responsive desktop/mobile layout
-- Navigation architecture for all planned modules
+- Supabase-backed workflows for referrals, interviews, communications, active pool, offers, onboarding, tasks, reports and templates
+- Sales requisition handoff and vacancy records with attached JD links
+- Linked internal comments and live record refresh
+- Archive and restore workflow with a 30-day recycle bin
+- Demo-only automatic purge after the recovery period
+- CSV candidate export and live KPI calculations
 - Live Supabase application reads with passwordless authentication
 - RLS-protected internal CRM access
 
@@ -30,9 +35,16 @@ Copy `.env.example` to `.env.local` and add the Supabase project URL and publish
 ## Priority roadmap
 
 1. Invite the initial administrator and configure approved email access
-2. Applications/candidates/vacancies live CRUD forms
-3. Automatic acknowledgments and SLA job processing
-4. Vacancy closing workflow and checklists
-5. Interview buddy review and calendar delivery
-6. Confidential offer approvals and restricted compensation fields
-7. Candidate-facing verified status page
+2. Complete dedicated forms for applications, candidates and requisitions
+3. Automatic external acknowledgments and email delivery
+4. Calendar delivery after interview buddy approval
+5. Confidential offer generation and electronic signature
+6. Candidate-facing verified status page
+7. Production retention policy, backups and live-data approval
+
+## Demo data retention
+
+All current sample records are synthetic and marked `is_demo = true`. Archive actions set a
+30-day recovery deadline. A daily Supabase Cron job permanently removes only expired demo
+records; it cannot purge future live records. The schema is documented in
+`supabase/migrations/20260827010000_demo_workflow_persistence.sql`.
